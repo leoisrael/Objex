@@ -103,23 +103,9 @@ Real-time augmented-reality web app that detects objects in your hand, overlays 
 
 ![Image](https://github.com/user-attachments/assets/969576fd-3adf-4e52-b104-41ce7d08779c)
 
----
-
-## 🤝 Contributing
-
-1. Fork the repo  
-2. Create a feature branch (`git checkout -b feature/YourFeature`)  
-3. Commit your changes (`git commit -m "Add awesome feature"`)  
-4. Push (`git push origin feature/YourFeature`)  
-5. Open a Pull Request  
 
 ---
 
 ## 📄 License
 
 This project is released under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
-
-> Built with ❤️ by [Your Name]  
-> Inspired by futuristic AR interfaces and powered by open-source AI models.
