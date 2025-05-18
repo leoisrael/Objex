@@ -4,77 +4,33 @@
   <meta charset="utf-8" />
   <title>VisionGPT Live</title>
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      height: 100%; width: 100%;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0e0e0e; color: #e0e0e0;
-    }
-    #app {
-      display: flex;
-      height: 100vh; width: 100vw;
-    }
-    /* Sidebar de 25% */
-    #sidebar {
-      width: 25vw;
-      background: #1a1a1a;
-      padding: 20px;
-      display: flex; flex-direction: column; justify-content: space-between;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
-    }
-    #log { flex-grow: 1; overflow-y: auto; font-size: 14px; }
-    #log p { margin: 5px 0; }
-    #previewBox {
-      margin-top: 20px;
-      border: 2px solid #0f0;
-      background: #000;
-      display: flex; align-items: center; justify-content: center;
-      width: 100%; height: 180px;
-    }
-    #previewCanvas { width: 160px; height: 160px; }
-
-    /* Container da câmera 75% */
-    #cameraContainer {
-      width: 75vw;
-      background: #000;
-      display: flex; justify-content: center; align-items: center;
-    }
-    /* Wrapper mantém 16:9 e borda arredondada */
-    #cameraWrapper {
-      position: relative;
-      width: 100%;
-      max-width: 1280px;
-      aspect-ratio: 16 / 9;
-      background: #000;
-      box-shadow: 0 0 20px rgba(0,255,0,0.1);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    /* Vídeo e canvas dentro */
+    html, body { margin:0; padding:0; height:100%; width:100%;
+      background:#0e0e0e; color:#e0e0e0; font-family:'Segoe UI',sans-serif; }
+    #app { display:flex; height:100vh; width:100vw; }
+    #sidebar { width:25vw; background:#1a1a1a; padding:20px;
+      display:flex; flex-direction:column; justify-content:space-between;
+      box-shadow:2px 0 5px rgba(0,0,0,0.5); }
+    #log { flex-grow:1; overflow-y:auto; font-size:14px; }
+    #previewBox { margin-top:20px; border:2px solid #0f0; background:#000;
+      display:flex; align-items:center; justify-content:center;
+      width:100%; height:180px; }
+    #previewCanvas { width:160px; height:160px; }
+    #cameraContainer { width:75vw; background:#000;
+      display:flex; justify-content:center; align-items:center; }
+    #cameraWrapper { position:relative; width:100%; max-width:1280px;
+      aspect-ratio:16/9; background:#000;
+      box-shadow:0 0 20px rgba(0,255,0,0.1); border-radius:8px; overflow:hidden; }
     #cameraWrapper video,
     #cameraWrapper canvas {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
+      position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover;
     }
-    canvas { z-index: 10; pointer-events: none; }
-
-    /* Botões */
-    #controls {
-      position: absolute; top: 10px; right: 10px;
-      z-index: 20; display: flex; gap: 10px;
-    }
-    .control-btn {
-      padding: 8px 12px;
-      background: rgba(0,0,0,0.7);
-      color: #fff; border: none; border-radius: 6px;
-      font-size: 14px; cursor: pointer;
-      transition: background 0.3s;
-    }
-    .control-btn:hover {
-      background: rgba(0,255,0,0.2);
-    }
+    canvas { z-index:10; pointer-events:none; }
+    #controls { position:absolute; top:10px; right:10px;
+      display:flex; gap:10px; z-index:20; }
+    .control-btn { padding:8px 12px; background:rgba(0,0,0,0.7);
+      color:#fff; border:none; border-radius:6px; font-size:14px;
+      cursor:pointer; transition:background .3s; }
+    .control-btn:hover { background:rgba(0,255,0,0.2); }
   </style>
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 </head>
@@ -99,115 +55,105 @@
   </div>
 
   <script>
-    const socket = io({ transports: ['websocket'] });
+    const socket = io({ transports:['websocket'] });
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const previewCanvas = document.getElementById('previewCanvas');
-    const previewCtx = previewCanvas.getContext('2d');
-    const logContainer = document.getElementById('log');
-    const toggleButton = document.getElementById('toggleCamera');
-    const fullscreenButton = document.getElementById('fullscreenBtn');
+    const preview = document.getElementById('previewCanvas');
+    const pctx = preview.getContext('2d');
+    const log = document.getElementById('log');
+    const btnSwitch = document.getElementById('toggleCamera');
+    const btnFS = document.getElementById('fullscreenBtn');
 
-    let facing = "environment";
-    let stream = null;
-    let lastBoxes = [];
-    let lastPose = { landmarks: [], connections: [] };
-    let isProcessing = false;
+    let facing="environment", stream=null;
+    let lastBoxes=[], lastPose={landmarks:[],connections:[]}, busy=false;
 
-    async function startCamera() {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing } });
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          setInterval(captureAndSendFrame, 200);
-          requestAnimationFrame(drawLoop);
-        };
-      } catch (err) {
-        alert("Erro ao acessar câmera: " + err.message);
-      }
+    async function startCamera(){
+      if(stream) stream.getTracks().forEach(t=>t.stop());
+      stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:facing}});
+      video.srcObject = stream;
+      video.onloadedmetadata = ()=>{
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        requestAnimationFrame(drawLoop);
+      };
     }
 
-    toggleButton.addEventListener('click', () => {
-      facing = facing === "environment" ? "user" : "environment";
+    btnSwitch.onclick = () => {
+      facing = facing==="environment" ? "user" : "environment";
       startCamera();
-    });
+    };
+    btnFS.onclick = () => {
+      document.fullscreenElement
+        ? document.exitFullscreen()
+        : document.documentElement.requestFullscreen();
+    };
 
-    fullscreenButton.addEventListener('click', () => {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-      else document.exitFullscreen();
-    });
-
-    function captureAndSendFrame() {
-      if (isProcessing) return;
-      isProcessing = true;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const img = canvas.toDataURL('image/jpeg', 0.7);
-      socket.emit('frame', img);
-    }
-
-    socket.on('boxes', data => {
-      lastBoxes = data.in_hand || [];
-      lastPose = data.pose || { landmarks: [], connections: [] };
-      updateLog(data);
-      updatePreview(data);
-      isProcessing = false;
-    });
-
-    function drawLoop() {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    function drawLoop(){
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      if(!busy){
+        busy=true;
+        socket.emit('frame', canvas.toDataURL('image/jpeg',0.7));
+      }
       drawBoxes(lastBoxes);
       drawSkeleton(lastPose);
       requestAnimationFrame(drawLoop);
     }
 
-    function drawBoxes(boxes) {
-      boxes.forEach(({ box, label }) => {
-        const [x1,y1,x2,y2] = box;
-        ctx.strokeStyle = 'lime'; ctx.lineWidth = 2;
+    socket.on('boxes', data=>{
+      lastBoxes = data.in_hand || [];
+      lastPose = data.pose || {landmarks:[],connections:[]};
+      // debug:
+      console.log("in_hand:", data.in_hand);
+      updateLog(data);
+      updatePreview(data);
+      busy=false;
+    });
+
+    function drawBoxes(boxes){
+      boxes.forEach(o=>{
+        const [x1,y1,x2,y2] = o.box;
+        // balão com descrição
+        const desc = o.description || o.label;
+        const w = Math.min(250, ctx.measureText(desc).width + 20);
+        ctx.strokeStyle='lime'; ctx.lineWidth=2;
         ctx.strokeRect(x1,y1,x2-x1,y2-y1);
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(x2+5,y1,160,40);
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 14px Arial';
-        ctx.fillText(label.toUpperCase(), x2+10, y1+25);
+        ctx.fillStyle='rgba(0,0,0,0.7)';
+        ctx.fillRect(x2+5,y1,w,40);
+        ctx.fillStyle='#fff'; ctx.font='bold 12px Arial';
+        ctx.fillText(desc, x2+10, y1+24);
       });
     }
 
-    function drawSkeleton(pose) {
-      if (!pose.landmarks.length) return;
-      ctx.strokeStyle = 'deepskyblue'; ctx.lineWidth = 2;
-      pose.connections.forEach(([a,b]) => {
-        const p1 = pose.landmarks[a], p2 = pose.landmarks[b];
-        if (!p1||!p2) return;
-        ctx.beginPath(); ctx.moveTo(p1[0],p1[1]);
-        ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+    function drawSkeleton({landmarks,connections}){
+      ctx.strokeStyle='deepskyblue'; ctx.lineWidth=2;
+      connections.forEach(([a,b])=>{
+        const p1=landmarks[a], p2=landmarks[b];
+        if(!p1||!p2) return;
+        ctx.beginPath(); ctx.moveTo(...p1); ctx.lineTo(...p2); ctx.stroke();
       });
-      pose.landmarks.forEach(([x,y]) => {
-        ctx.fillStyle = 'white';
+      landmarks.forEach(([x,y])=>{
+        ctx.fillStyle='white';
         ctx.beginPath(); ctx.arc(x,y,4,0,2*Math.PI); ctx.fill();
       });
     }
 
-    function updateLog({ people = 0, in_hand = [] }) {
-      logContainer.innerHTML = `
+    function updateLog({people,in_hand=[]}){
+      log.innerHTML = `
         <p><strong>Pessoas detectadas:</strong> ${people}</p>
         <p><strong>Objetos na mão:</strong></p>
         ${in_hand.length
-          ? in_hand.map(o => `• ${o.label.toUpperCase()}`).join('<br>')
+          ? in_hand.map(o=>`• ${o.description || o.label}`).join('<br>')
           : '<i>Nenhum objeto detectado na mão</i>'}
       `;
     }
 
-    function updatePreview({ in_hand = [] }) {
-      if (!in_hand.length || !video.videoWidth) return;
+    function updatePreview({in_hand=[]}){
+      pctx.clearRect(0,0,preview.width,preview.height);
+      if(!in_hand.length) return;
       const [x1,y1,x2,y2] = in_hand[0].box;
-      const sw = x2 - x1, sh = y2 - y1;
-      const dw = previewCanvas.width, dh = previewCanvas.height;
-      previewCtx.clearRect(0,0,dw,dh);
-      previewCtx.drawImage(video, x1,y1,sw,sh, 0,0,dw,dh);
+      pctx.drawImage(video, x1,y1, x2-x1,y2-y1, 0,0,
+                     preview.width,preview.height);
     }
 
     startCamera();
