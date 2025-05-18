@@ -101,13 +101,7 @@ Real-time augmented-reality web app that detects objects in your hand, overlays 
 
 ## 🎨 Screenshots
 
-<!--
-Replace `path/to/...` with your actual image paths or URLs.
--->
-| Live View | Description & Preview |
-|:---------:|:---------------------:|
-| ![Live view with skeleton and boxes](path/to/live_view.png) | ![Preview pane with AI caption](path/to/preview.png) |
-| ![Fullscreen mode demo](path/to/fullscreen.png) | ![Objects in hand list](path/to/list_view.png) |
+![Image](https://github.com/user-attachments/assets/969576fd-3adf-4e52-b104-41ce7d08779c)
 
 ---
 
