@@ -1,4 +1,4 @@
-# VisionGPT Live
+# Objex
 
 Real-time augmented-reality web app that detects objects in your hand, overlays a pose skeleton, and generates AI-driven descriptive captions — all running locally with no paid APIs.
 
@@ -42,8 +42,8 @@ Real-time augmented-reality web app that detects objects in your hand, overlays 
 
 1. **Clone repository**  
    ```bash
-   git clone https://github.com/yourusername/visiongpt-live.git
-   cd visiongpt-live
+   git clone https://github.com/yourusername/Objex.git
+   cd Objex
    ```
 
 2. **Create & activate a virtual environment**  
